@@ -8,6 +8,9 @@
     "maxInsertions": 450,
     "maxDeletions": 350,
     "maxNonUiFiles": 4,
+    "ignoredPaths": [
+      "package-lock.json"
+    ],
     "uiPathKeywords": [
       "src/app",
       "src/components",

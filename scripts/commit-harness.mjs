@@ -33,7 +33,7 @@ function parseCommits(raw) {
       const lines = chunk.split('\n');
       const hash = lines[0];
       const subject = lines[1] ?? '';
-      const files = [];
+      const entries = [];
       let insertions = 0;
       let deletions = 0;
 
@@ -44,15 +44,16 @@ function parseCommits(raw) {
         const del = Number.isNaN(Number(delRaw)) ? 0 : Number(delRaw);
         insertions += ins;
         deletions += del;
-        files.push(file);
+        entries.push({ file, insertions: ins, deletions: del });
       }
 
       return {
         hash,
         shortHash: hash.slice(0, 7),
         subject,
-        files,
-        filesChanged: files.length,
+        files: entries.map((entry) => entry.file),
+        entries,
+        filesChanged: entries.length,
         insertions,
         deletions,
       };
@@ -63,7 +64,16 @@ function analyzeCommit(commit, rules) {
   const reasons = [];
   const suggestions = [];
   const messageRegex = new RegExp(rules.messagePattern);
-  const nonUiFiles = commit.files.filter(
+  const ignoredPaths = rules.ignoredPaths ?? [];
+  const isIgnored = (file) =>
+    ignoredPaths.some((path) => file === path || file.startsWith(`${path}/`));
+
+  const scoredEntries = commit.entries.filter((entry) => !isIgnored(entry.file));
+  const scoredFiles = scoredEntries.map((entry) => entry.file);
+  const filesChanged = scoredEntries.length;
+  const insertions = scoredEntries.reduce((sum, entry) => sum + entry.insertions, 0);
+  const deletions = scoredEntries.reduce((sum, entry) => sum + entry.deletions, 0);
+  const nonUiFiles = scoredFiles.filter(
     (file) => !rules.uiPathKeywords.some((keyword) => file.startsWith(keyword)),
   );
 
@@ -72,18 +82,18 @@ function analyzeCommit(commit, rules) {
     suggestions.push('메시지 형식을 통일하고 작업 목적을 10자 이상으로 구체화하세요.');
   }
 
-  if (commit.filesChanged > rules.maxFilesChanged) {
-    reasons.push(`변경 파일 수가 ${rules.maxFilesChanged}개를 초과합니다 (${commit.filesChanged}개).`);
+  if (filesChanged > rules.maxFilesChanged) {
+    reasons.push(`변경 파일 수가 ${rules.maxFilesChanged}개를 초과합니다 (${filesChanged}개).`);
     suggestions.push('화면별/컴포넌트별로 커밋을 분리하세요.');
   }
 
-  if (commit.insertions > rules.maxInsertions) {
-    reasons.push(`추가 라인이 ${rules.maxInsertions}줄을 초과합니다 (${commit.insertions}줄).`);
+  if (insertions > rules.maxInsertions) {
+    reasons.push(`추가 라인이 ${rules.maxInsertions}줄을 초과합니다 (${insertions}줄).`);
     suggestions.push('공통 스타일/개별 화면 리팩터링을 분리 커밋하세요.');
   }
 
-  if (commit.deletions > rules.maxDeletions) {
-    reasons.push(`삭제 라인이 ${rules.maxDeletions}줄을 초과합니다 (${commit.deletions}줄).`);
+  if (deletions > rules.maxDeletions) {
+    reasons.push(`삭제 라인이 ${rules.maxDeletions}줄을 초과합니다 (${deletions}줄).`);
     suggestions.push('대규모 삭제는 단계적으로 나눠서 반영하세요.');
   }
 
@@ -96,6 +106,9 @@ function analyzeCommit(commit, rules) {
 
   return {
     ...commit,
+    filesChanged,
+    insertions,
+    deletions,
     nonUiFiles,
     pass: reasons.length === 0,
     reasons,
