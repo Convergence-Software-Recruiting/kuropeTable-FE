@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "harness:commit": "node scripts/commit-harness.mjs"
+    "harness:commit": "node scripts/commit-harness.mjs",
+    "harness:commit:ui-large": "node scripts/commit-harness.mjs --case harness/cases/commit-ui-large.json"
   },
   "repository": {
     "type": "git",
