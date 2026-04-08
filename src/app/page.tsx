@@ -1,52 +1,78 @@
-import Link from 'next/link';
+'use client';
 
-const quickLinks = [
-  {
-    title: '식당 상세 보기',
-    description: '예약/웨이팅 가능한 정보를 한 번에 확인합니다.',
-    href: '/restaurants/1',
-    cta: '고객 화면 열기',
-  },
-  {
-    title: '웨이팅 관리',
-    description: '관리자 화면에서 호출/입장/취소를 처리합니다.',
-    href: '/admin/restaurants/1/waiting',
-    cta: '관리자 웨이팅',
-  },
-  {
-    title: '예약 관리',
-    description: '예약 상태를 확정, 방문완료, 취소로 관리합니다.',
-    href: '/admin/restaurants/1/reservations',
-    cta: '관리자 예약',
-  },
-];
+import { useState } from 'react';
+import CityGrid from '@/components/restaurant/CityGrid';
+import PriceFilter from '@/components/restaurant/PriceFilter';
+import RestaurantCard from '@/components/restaurant/RestaurantCard';
+import { mockCities, mockRestaurantListings } from '@/lib/mocks/listingData';
+import type { PriceRange } from '@/lib/types/listing';
 
 export default function Home(): React.ReactElement {
-  return (
-    <main className="app-shell motion-enter">
-      <section className="surface-card overflow-hidden p-7 sm:p-9">
-        <p className="page-eyebrow">kurope table</p>
-        <h1 className="page-title mt-2">예약과 웨이팅을 한 화면 흐름으로 정리한 매장 운영 UI</h1>
-        <p className="page-description">
-          토스 스타일의 정보 우선 구조로, 고객과 관리자 모두가 빠르게 다음 행동을 선택할 수 있게 구성했습니다.
-        </p>
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [priceFilter, setPriceFilter] = useState<PriceRange | 'all'>('all');
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {quickLinks.map((item, index) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`surface-soft motion-enter rounded-2xl p-4 transition-all hover:border-[#b6cdf3] hover:bg-[#eef4ff] ${
-                index === 1 ? 'motion-enter-delay-1' : index === 2 ? 'motion-enter-delay-2' : ''
-              }`}
+  const filtered = mockRestaurantListings.filter((r) => {
+    const cityMatch = !selectedCity || r.city.toLowerCase() === selectedCity;
+    const priceMatch = priceFilter === 'all' || r.price_range === priceFilter;
+    return cityMatch && priceMatch;
+  });
+
+  return (
+    <main className="app-shell motion-enter space-y-5">
+
+      {/* 어디로 가시나요? */}
+      <section className="surface-card p-5 sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-bold text-[var(--text-strong)]">어느 도시로 가시나요?</h2>
+          {selectedCity && (
+            <button
+              onClick={() => setSelectedCity(null)}
+              className="text-xs font-semibold text-[var(--primary-strong)]"
             >
-              <h2 className="text-sm font-bold text-[var(--text-strong)]">{item.title}</h2>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">{item.description}</p>
-              <p className="mt-4 text-sm font-semibold text-[var(--primary-strong)]">{item.cta} →</p>
-            </Link>
-          ))}
+              전체 보기
+            </button>
+          )}
         </div>
+        <CityGrid
+          cities={mockCities}
+          selected={selectedCity}
+          onSelect={setSelectedCity}
+        />
       </section>
+
+      {/* 가격대별 BEST */}
+      <section className="surface-card overflow-hidden">
+        <div className="px-5 pt-5 sm:px-6">
+          <p className="page-eyebrow">best restaurants</p>
+          <h2 className="page-title mt-1">
+            {selectedCity
+              ? `${mockCities.find((c) => c.id === selectedCity)?.name ?? ''} 추천`
+              : '가격대별 BEST'}
+          </h2>
+          <p className="page-description">
+            {filtered.length > 0
+              ? `${filtered.length}개의 레스토랑`
+              : '조건에 맞는 레스토랑이 없습니다.'}
+          </p>
+        </div>
+
+        <div className="mt-4 px-5 sm:px-6">
+          <PriceFilter selected={priceFilter} onChange={setPriceFilter} />
+        </div>
+
+        {filtered.length > 0 ? (
+          <ul className="divide-y divide-[var(--line)] px-2 pb-2">
+            {filtered.map((r, i) => (
+              <RestaurantCard key={r.id} listing={r} index={i} />
+            ))}
+          </ul>
+        ) : (
+          <p className="py-10 text-center text-sm text-[var(--text-muted)]">
+            선택한 조건에 맞는 레스토랑이 없습니다.
+          </p>
+        )}
+      </section>
+
     </main>
   );
 }
