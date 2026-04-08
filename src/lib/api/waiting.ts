@@ -1,43 +1,32 @@
 import type { CreateWaitingInput, Waiting, WaitingStatusResponse } from '@/lib/types';
-
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+import { apiClient } from '@/lib/api/client';
 
 export async function getRestaurantWaitings(restaurantId: string): Promise<{ waitings: Waiting[]; total_count: number }> {
-  const res = await fetch(`${BASE}/api/restaurants/${restaurantId}/waiting`);
-  if (!res.ok) throw new Error(`Failed to fetch waitings: ${res.status}`);
-  return res.json() as Promise<{ waitings: Waiting[]; total_count: number }>;
+  const response = await apiClient.get<{ waitings: Waiting[]; total_count: number }>(`/api/restaurants/${restaurantId}/waiting`);
+  return response.data;
 }
 
 export async function createWaiting(restaurantId: string, input: CreateWaitingInput): Promise<Waiting> {
-  const res = await fetch(`${BASE}/api/restaurants/${restaurantId}/waiting`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) throw new Error(`Failed to create waiting: ${res.status}`);
-  return res.json() as Promise<Waiting>;
+  const response = await apiClient.post<Waiting>(`/api/restaurants/${restaurantId}/waiting`, input);
+  return response.data;
 }
 
 export async function getMyWaiting(waitingId: string): Promise<WaitingStatusResponse> {
-  const res = await fetch(`${BASE}/api/waiting/${waitingId}`);
-  if (!res.ok) throw new Error(`Failed to fetch waiting: ${res.status}`);
-  return res.json() as Promise<WaitingStatusResponse>;
+  const response = await apiClient.get<WaitingStatusResponse>(`/api/waiting/${waitingId}`);
+  return response.data;
 }
 
 export async function cancelWaiting(waitingId: string): Promise<Waiting> {
-  const res = await fetch(`${BASE}/api/waiting/${waitingId}/cancel`, { method: 'PATCH' });
-  if (!res.ok) throw new Error(`Failed to cancel waiting: ${res.status}`);
-  return res.json() as Promise<Waiting>;
+  const response = await apiClient.patch<Waiting>(`/api/waiting/${waitingId}/cancel`);
+  return response.data;
 }
 
 export async function callWaiting(waitingId: string): Promise<Waiting> {
-  const res = await fetch(`${BASE}/api/waiting/${waitingId}/call`, { method: 'PATCH' });
-  if (!res.ok) throw new Error(`Failed to call waiting: ${res.status}`);
-  return res.json() as Promise<Waiting>;
+  const response = await apiClient.patch<Waiting>(`/api/waiting/${waitingId}/call`);
+  return response.data;
 }
 
 export async function seatWaiting(waitingId: string): Promise<Waiting> {
-  const res = await fetch(`${BASE}/api/waiting/${waitingId}/seat`, { method: 'PATCH' });
-  if (!res.ok) throw new Error(`Failed to seat waiting: ${res.status}`);
-  return res.json() as Promise<Waiting>;
+  const response = await apiClient.patch<Waiting>(`/api/waiting/${waitingId}/seat`);
+  return response.data;
 }
