@@ -1,19 +1,60 @@
 import type { AxiosInstance } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
-import type { CreateReservationInput, CreateWaitingInput, Reservation, Waiting } from '@/lib/types';
+import type { CreateReservationInput, CreateWaitingInput, Reservation, Restaurant, Waiting } from '@/lib/types';
 import { mockRestaurant, mockReservations, mockWaitings } from '@/lib/mocks/data';
+import { mockRestaurants } from '@/lib/mocks/listingData';
+
+type ReservationsByRestaurant = Record<string, Reservation[]>;
+type WaitingsByRestaurant = Record<string, Waiting[]>;
 
 type MockState = {
-  reservations: Reservation[];
-  waitings: Waiting[];
+  reservationsByRestaurant: ReservationsByRestaurant;
+  waitingsByRestaurant: WaitingsByRestaurant;
 };
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const makeInitialState = (): MockState => ({
-  reservations: clone(mockReservations),
-  waitings: clone(mockWaitings),
-});
+const restaurantDirectory: Record<string, Restaurant> = (() => {
+  const directory = Object.fromEntries(mockRestaurants.map((restaurant) => [restaurant.id, restaurant]));
+
+  if (!directory[mockRestaurant.id]) {
+    directory[mockRestaurant.id] = clone(mockRestaurant);
+  }
+
+  return directory;
+})();
+
+const makeBucket = <T>(): Record<string, T[]> => {
+  const bucket: Record<string, T[]> = {};
+  Object.keys(restaurantDirectory).forEach((restaurantId) => {
+    bucket[restaurantId] = [];
+  });
+  return bucket;
+};
+
+const makeInitialState = (): MockState => {
+  const reservationsByRestaurant = makeBucket<Reservation>();
+  const waitingsByRestaurant = makeBucket<Waiting>();
+
+  mockReservations.forEach((reservation) => {
+    if (!reservationsByRestaurant[reservation.restaurant_id]) {
+      reservationsByRestaurant[reservation.restaurant_id] = [];
+    }
+    reservationsByRestaurant[reservation.restaurant_id].push(clone(reservation));
+  });
+
+  mockWaitings.forEach((waiting) => {
+    if (!waitingsByRestaurant[waiting.restaurant_id]) {
+      waitingsByRestaurant[waiting.restaurant_id] = [];
+    }
+    waitingsByRestaurant[waiting.restaurant_id].push(clone(waiting));
+  });
+
+  return {
+    reservationsByRestaurant,
+    waitingsByRestaurant,
+  };
+};
 
 const now = (): string => new Date().toISOString();
 const parseBody = <T>(raw: unknown): T => {
@@ -22,6 +63,42 @@ const parseBody = <T>(raw: unknown): T => {
   }
 
   return (raw ?? {}) as T;
+};
+
+const ensureReservationBucket = (restaurantId: string): Reservation[] => {
+  if (!state.reservationsByRestaurant[restaurantId]) {
+    state.reservationsByRestaurant[restaurantId] = [];
+  }
+  return state.reservationsByRestaurant[restaurantId];
+};
+
+const ensureWaitingBucket = (restaurantId: string): Waiting[] => {
+  if (!state.waitingsByRestaurant[restaurantId]) {
+    state.waitingsByRestaurant[restaurantId] = [];
+  }
+  return state.waitingsByRestaurant[restaurantId];
+};
+
+const findReservationLocation = (reservationId: string): { restaurantId: string; index: number } | null => {
+  for (const [restaurantId, reservations] of Object.entries(state.reservationsByRestaurant)) {
+    const index = reservations.findIndex((item) => item.id === reservationId);
+    if (index !== -1) {
+      return { restaurantId, index };
+    }
+  }
+
+  return null;
+};
+
+const findWaitingLocation = (waitingId: string): { restaurantId: string; index: number } | null => {
+  for (const [restaurantId, waitings] of Object.entries(state.waitingsByRestaurant)) {
+    const index = waitings.findIndex((item) => item.id === waitingId);
+    if (index !== -1) {
+      return { restaurantId, index };
+    }
+  }
+
+  return null;
 };
 
 let state: MockState = makeInitialState();
@@ -40,27 +117,34 @@ export function installMockApi(client: AxiosInstance): void {
     const match = config.url?.match(/\/api\/restaurants\/([^/]+)$/);
     const restaurantId = match?.[1];
 
-    if (!restaurantId || restaurantId !== mockRestaurant.id) {
+    if (!restaurantId || !restaurantDirectory[restaurantId]) {
       return [404, { message: 'Not found' }];
     }
 
-    return [200, clone(mockRestaurant)];
+    return [200, clone(restaurantDirectory[restaurantId])];
   });
 
   mock.onPost(/\/api\/restaurants\/([^/]+)\/reservations$/).reply((config) => {
     const match = config.url?.match(/\/api\/restaurants\/([^/]+)\/reservations$/);
     const restaurantId = match?.[1];
 
-    if (!restaurantId || restaurantId !== mockRestaurant.id) {
+    if (!restaurantId || !restaurantDirectory[restaurantId]) {
       return [404, { message: 'Not found' }];
+    }
+
+    const restaurant = restaurantDirectory[restaurantId];
+    if (!restaurant.reservation_enabled) {
+      return [400, { message: 'Reservation disabled' }];
     }
 
     const body = parseBody<CreateReservationInput>(config.data);
     const createdAt = now();
+    const uniqueId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
     const newReservation: Reservation = {
-      id: String(Date.now()),
-      restaurant_id: mockRestaurant.id,
-      reservation_code: `RES-${Date.now()}`,
+      id: uniqueId,
+      restaurant_id: restaurant.id,
+      reservation_code: `RES-${uniqueId}`,
       guest_name: body.guest_name ?? '',
       guest_phone: body.guest_phone ?? '',
       reservation_date: body.reservation_date ?? '',
@@ -73,7 +157,9 @@ export function installMockApi(client: AxiosInstance): void {
       canceled_at: null,
     };
 
-    state.reservations = [...state.reservations, newReservation];
+    const reservations = ensureReservationBucket(restaurant.id);
+    state.reservationsByRestaurant[restaurant.id] = [...reservations, newReservation];
+
     return [201, clone(newReservation)];
   });
 
@@ -81,11 +167,12 @@ export function installMockApi(client: AxiosInstance): void {
     const match = config.url?.match(/\/api\/admin\/restaurants\/([^/]+)\/reservations$/);
     const restaurantId = match?.[1];
 
-    if (!restaurantId || restaurantId !== mockRestaurant.id) {
+    if (!restaurantId || !restaurantDirectory[restaurantId]) {
       return [404, { message: 'Not found' }];
     }
 
-    return [200, { reservations: clone(state.reservations) }];
+    const reservations = ensureReservationBucket(restaurantId);
+    return [200, { reservations: clone(reservations) }];
   });
 
   mock.onPatch(/\/api\/admin\/reservations\/([^/]+)\/status$/).reply((config) => {
@@ -97,13 +184,13 @@ export function installMockApi(client: AxiosInstance): void {
       return [404, { message: 'Not found' }];
     }
 
-    const index = state.reservations.findIndex((item) => item.id === reservationId);
-    if (index === -1) {
+    const found = findReservationLocation(reservationId);
+    if (!found) {
       return [404, { message: 'Not found' }];
     }
 
     const updatedAt = now();
-    const existing = state.reservations[index];
+    const existing = state.reservationsByRestaurant[found.restaurantId][found.index];
     const updated: Reservation = {
       ...existing,
       status: body.status,
@@ -111,7 +198,7 @@ export function installMockApi(client: AxiosInstance): void {
       canceled_at: body.status === 'CANCELED' ? updatedAt : existing.canceled_at,
     };
 
-    state.reservations[index] = updated;
+    state.reservationsByRestaurant[found.restaurantId][found.index] = updated;
     return [200, clone(updated)];
   });
 
@@ -119,11 +206,13 @@ export function installMockApi(client: AxiosInstance): void {
     const match = config.url?.match(/\/api\/restaurants\/([^/]+)\/waiting$/);
     const restaurantId = match?.[1];
 
-    if (!restaurantId || restaurantId !== mockRestaurant.id) {
+    if (!restaurantId || !restaurantDirectory[restaurantId]) {
       return [404, { message: 'Not found' }];
     }
 
-    const active = state.waitings.filter((item) => item.status === 'WAITING' || item.status === 'CALLED');
+    const waitings = ensureWaitingBucket(restaurantId);
+    const active = waitings.filter((item) => item.status === 'WAITING' || item.status === 'CALLED');
+
     return [200, { waitings: clone(active), total_count: active.length }];
   });
 
@@ -131,17 +220,25 @@ export function installMockApi(client: AxiosInstance): void {
     const match = config.url?.match(/\/api\/restaurants\/([^/]+)\/waiting$/);
     const restaurantId = match?.[1];
 
-    if (!restaurantId || restaurantId !== mockRestaurant.id) {
+    if (!restaurantId || !restaurantDirectory[restaurantId]) {
       return [404, { message: 'Not found' }];
     }
 
+    const restaurant = restaurantDirectory[restaurantId];
+    if (!restaurant.remote_waiting_enabled) {
+      return [400, { message: 'Remote waiting disabled' }];
+    }
+
     const body = parseBody<CreateWaitingInput>(config.data);
-    const nextNumber = state.waitings.reduce((max, item) => Math.max(max, item.waiting_number), 0) + 1;
+    const waitings = ensureWaitingBucket(restaurant.id);
+
+    const nextNumber = waitings.reduce((max, item) => Math.max(max, item.waiting_number), 0) + 1;
     const createdAt = now();
+    const uniqueId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
     const newWaiting: Waiting = {
-      id: String(Date.now()),
-      restaurant_id: mockRestaurant.id,
+      id: uniqueId,
+      restaurant_id: restaurant.id,
       waiting_code: `W-${String(nextNumber).padStart(3, '0')}`,
       guest_name: body.guest_name ?? '',
       guest_phone: body.guest_phone ?? '',
@@ -159,7 +256,7 @@ export function installMockApi(client: AxiosInstance): void {
       updated_at: createdAt,
     };
 
-    state.waitings = [...state.waitings, newWaiting];
+    state.waitingsByRestaurant[restaurant.id] = [...waitings, newWaiting];
     return [201, clone(newWaiting)];
   });
 
@@ -171,12 +268,15 @@ export function installMockApi(client: AxiosInstance): void {
       return [404, { message: 'Not found' }];
     }
 
-    const waiting = state.waitings.find((item) => item.id === waitingId);
-    if (!waiting) {
+    const found = findWaitingLocation(waitingId);
+    if (!found) {
       return [404, { message: 'Not found' }];
     }
 
-    const aheadCount = state.waitings.filter(
+    const waitings = ensureWaitingBucket(found.restaurantId);
+    const waiting = waitings[found.index];
+
+    const aheadCount = waitings.filter(
       (item) => item.status === 'WAITING' && item.waiting_number < waiting.waiting_number,
     ).length;
 
@@ -191,13 +291,13 @@ export function installMockApi(client: AxiosInstance): void {
       return [404, { message: 'Not found' }];
     }
 
-    const index = state.waitings.findIndex((item) => item.id === waitingId);
-    if (index === -1) {
+    const found = findWaitingLocation(waitingId);
+    if (!found) {
       return [404, { message: 'Not found' }];
     }
 
     const updatedAt = now();
-    const existing = state.waitings[index];
+    const existing = state.waitingsByRestaurant[found.restaurantId][found.index];
     const updated: Waiting = {
       ...existing,
       status: 'CANCELED',
@@ -205,7 +305,7 @@ export function installMockApi(client: AxiosInstance): void {
       updated_at: updatedAt,
     };
 
-    state.waitings[index] = updated;
+    state.waitingsByRestaurant[found.restaurantId][found.index] = updated;
     return [200, clone(updated)];
   });
 
@@ -217,13 +317,13 @@ export function installMockApi(client: AxiosInstance): void {
       return [404, { message: 'Not found' }];
     }
 
-    const index = state.waitings.findIndex((item) => item.id === waitingId);
-    if (index === -1) {
+    const found = findWaitingLocation(waitingId);
+    if (!found) {
       return [404, { message: 'Not found' }];
     }
 
     const updatedAt = now();
-    const existing = state.waitings[index];
+    const existing = state.waitingsByRestaurant[found.restaurantId][found.index];
     const updated: Waiting = {
       ...existing,
       status: 'CALLED',
@@ -231,7 +331,7 @@ export function installMockApi(client: AxiosInstance): void {
       updated_at: updatedAt,
     };
 
-    state.waitings[index] = updated;
+    state.waitingsByRestaurant[found.restaurantId][found.index] = updated;
     return [200, clone(updated)];
   });
 
@@ -243,13 +343,13 @@ export function installMockApi(client: AxiosInstance): void {
       return [404, { message: 'Not found' }];
     }
 
-    const index = state.waitings.findIndex((item) => item.id === waitingId);
-    if (index === -1) {
+    const found = findWaitingLocation(waitingId);
+    if (!found) {
       return [404, { message: 'Not found' }];
     }
 
     const updatedAt = now();
-    const existing = state.waitings[index];
+    const existing = state.waitingsByRestaurant[found.restaurantId][found.index];
     const updated: Waiting = {
       ...existing,
       status: 'SEATED',
@@ -257,7 +357,7 @@ export function installMockApi(client: AxiosInstance): void {
       updated_at: updatedAt,
     };
 
-    state.waitings[index] = updated;
+    state.waitingsByRestaurant[found.restaurantId][found.index] = updated;
     return [200, clone(updated)];
   });
 }
