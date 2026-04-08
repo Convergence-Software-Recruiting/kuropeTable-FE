@@ -30,6 +30,8 @@
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "axios": "^1.14.0",
+    "axios-mock-adapter": "^2.1.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.2",
     "next": "^16.2.2",
@@ -45,7 +47,6 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^6.0.1",
     "jsdom": "^29.0.2",
-    "msw": "^2.13.0",
     "vitest": "^4.1.2"
   }
 }
