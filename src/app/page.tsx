@@ -47,6 +47,18 @@ export default function Home(): React.ReactElement {
   );
 
   const selectedCityInfo = selectedCity ? mockCityMap.get(selectedCity) : null;
+  const highlightedListing = filteredListings[0] ?? null;
+  const activeTrackLabel = selectedTrack === 'all' ? '전체 실증 트랙' : TRACK_LABELS[selectedTrack];
+  const activeCountryLabel =
+    selectedCountry === 'all'
+      ? '중부 유럽 전체'
+      : mockCountryGroups.find((country) => country.code === selectedCountry)?.name ?? selectedCountry;
+  const heroSummary = selectedCityInfo
+    ? `${selectedCityInfo.name} ${selectedCityInfo.districtFocus} 구간을 중심으로 현장 동선을 보고 있습니다.`
+    : `${activeCountryLabel} 권역에서 ${activeTrackLabel} 기준으로 우선 검토할 거점을 추렸습니다.`;
+  const heroMemo = highlightedListing
+    ? `${highlightedListing.name} 기준 리뷰 ${highlightedListing.reviewCount.toLocaleString()}건, 평균 체류 ${highlightedListing.avgDiningMinutes}분 흐름이 확인됩니다.`
+    : '조건에 맞는 거점이 없어서 필터를 넓혀 다시 보는 편이 좋습니다.';
 
   const setTrackFilter = (nextTrack: TrackFilter): void => {
     setSelectedTrack(nextTrack);
@@ -86,30 +98,42 @@ export default function Home(): React.ReactElement {
           <div className="flex items-start justify-between gap-3">
             <KuropeLogo />
             <span className="rounded-full border border-[#c7d7ef] bg-white/80 px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#345981]">
-              pilot 2026
+              field board
             </span>
           </div>
 
           <h1 className="mt-4 text-[1.48rem] font-black tracking-[-0.02em] text-[var(--text-strong)] sm:text-[1.68rem]">
-            유럽 현장 서비스 검증 맵
+            유럽 실증 후보를 한 화면에서 정리하는 운영 보드
           </h1>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-default)]">
-            도시 성격에 맞춘 캐치테이블·렌트카·마켓컬리 실증 거점을 국가별로 탐색하고, 우선 검증 후보를 빠르게 정리합니다.
+            도시별 결이 다른 외식, 이동, 생활 수요를 한 번에 훑으면서 지금 바로 가볼 만한 후보를 빠르게 압축합니다.
           </p>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-[#d9e4f5] bg-white/85 px-3 py-2">
-              <p className="text-[0.67rem] font-bold uppercase tracking-[0.06em] text-[#5c728f]">Cities</p>
-              <p className="text-[1.15rem] font-extrabold text-[#1e3e66]">{mockCities.length}</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-[1.35fr_0.95fr]">
+            <div className="rounded-[1.1rem] border border-[#d9e4f5] bg-white/88 px-4 py-3">
+              <p className="text-[0.67rem] font-bold uppercase tracking-[0.08em] text-[#5c728f]">Current Focus</p>
+              <p className="mt-1 text-sm font-extrabold text-[#1d3f67]">
+                {selectedCityInfo ? `${selectedCityInfo.name} 현장 흐름 확인` : `${activeCountryLabel} 후보 압축`}
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-[#55708f]">{heroSummary}</p>
             </div>
-            <div className="rounded-xl border border-[#d9e4f5] bg-white/85 px-3 py-2">
-              <p className="text-[0.67rem] font-bold uppercase tracking-[0.06em] text-[#5c728f]">Spots</p>
-              <p className="text-[1.15rem] font-extrabold text-[#1e3e66]">{mockRestaurantListings.length}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-[1.1rem] border border-[#d9e4f5] bg-white/85 px-3 py-3">
+                <p className="text-[0.67rem] font-bold uppercase tracking-[0.06em] text-[#5c728f]">Visible Cities</p>
+                <p className="mt-1 text-[1.08rem] font-extrabold text-[#1e3e66]">{visibleCities.length}</p>
+                <p className="mt-1 text-[11px] text-[#637a96]">현재 필터에 맞는 도시</p>
+              </div>
+              <div className="rounded-[1.1rem] border border-[#d9e4f5] bg-white/85 px-3 py-3">
+                <p className="text-[0.67rem] font-bold uppercase tracking-[0.06em] text-[#5c728f]">Shortlist</p>
+                <p className="mt-1 text-[1.08rem] font-extrabold text-[#1e3e66]">{filteredListings.length}</p>
+                <p className="mt-1 text-[11px] text-[#637a96]">지금 비교 중인 거점</p>
+              </div>
             </div>
-            <div className="rounded-xl border border-[#d9e4f5] bg-white/85 px-3 py-2">
-              <p className="text-[0.67rem] font-bold uppercase tracking-[0.06em] text-[#5c728f]">Tracks</p>
-              <p className="text-[1.15rem] font-extrabold text-[#1e3e66]">{serviceTrackCards.length}</p>
-            </div>
+          </div>
+
+          <div className="mt-2 rounded-[1.1rem] border border-[#d9e4f5] bg-white/76 px-4 py-3">
+            <p className="text-[0.67rem] font-bold uppercase tracking-[0.08em] text-[#5c728f]">Field Note</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#36526f]">{heroMemo}</p>
           </div>
         </div>
       </header>
@@ -234,13 +258,13 @@ export default function Home(): React.ReactElement {
 
       <section className="surface-card overflow-hidden">
         <div className="px-5 pt-5 sm:px-6">
-          <p className="page-eyebrow">verified spot list</p>
+          <p className="page-eyebrow">curated shortlist</p>
           <h2 className="page-title mt-1">
-            {selectedCityInfo ? `${selectedCityInfo.name} 검증 거점` : '유명 장소 목데이터'}
+            {selectedCityInfo ? `${selectedCityInfo.name} 현장 후보` : '현장 검토 스폿 아카이브'}
           </h2>
           <p className="page-description">
             {filteredListings.length > 0
-              ? `${filteredListings.length}곳이 현재 조건에 맞습니다.`
+              ? `${filteredListings.length}곳이 현재 조건에 맞고, 카드마다 바로 확인할 포인트를 함께 붙였습니다.`
               : '조건에 맞는 검증 거점이 없습니다.'}
           </p>
         </div>

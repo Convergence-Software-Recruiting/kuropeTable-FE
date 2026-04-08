@@ -34,7 +34,7 @@ export default function CityGrid({ cities, selected, onSelect }: Props): React.R
             ].join(' ')}
           >
             <div
-              className="relative h-[82px] w-full"
+              className="relative h-[96px] w-full"
               style={{
                 backgroundImage: `url(${getCityCoverImagePath(city.id)}), ${city.gradient}`,
                 backgroundSize: 'cover, auto',
@@ -50,12 +50,18 @@ export default function CityGrid({ cities, selected, onSelect }: Props): React.R
                 </span>
               )}
 
+              {isActive && (
+                <span className="absolute right-2.5 top-2.5 rounded-full bg-[#1f5fbf] px-2 py-0.5 text-[10px] font-bold text-white">
+                  보고 있는 도시
+                </span>
+              )}
+
               <span className="absolute bottom-2 right-2 rounded-full bg-white/92 px-2 py-0.5 text-[10px] font-bold text-[#3c4e63]">
                 {city.country}
               </span>
             </div>
 
-            <div className="space-y-1.5 p-3.5">
+            <div className="space-y-2 p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-[0.95rem] font-extrabold tracking-[-0.01em] text-[var(--text-strong)]">{city.name}</p>
@@ -67,6 +73,15 @@ export default function CityGrid({ cities, selected, onSelect }: Props): React.R
               </div>
 
               <p className="line-clamp-2 text-xs leading-relaxed text-[var(--text-default)]">{city.districtFocus}</p>
+
+              <div className="rounded-xl border border-[#dde6f2] bg-[#f8fbff] px-2.5 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#68809d]">현장 포인트</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#405877]">
+                  {city.serviceTrack === 'catchtable' && '저녁 피크타임 예약/대기 전환 흐름을 보기 좋습니다.'}
+                  {city.serviceTrack === 'rentcar' && '도심에서 근교로 빠지는 실제 이동 장벽을 체크하기 좋습니다.'}
+                  {city.serviceTrack === 'grocery' && '관광 소비보다 생활형 재구매 패턴을 읽기 좋은 구간입니다.'}
+                </p>
+              </div>
             </div>
           </button>
         );

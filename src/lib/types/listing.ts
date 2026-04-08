@@ -58,6 +58,95 @@ export interface RestaurantListing {
   avgDiningMinutes: number;
 }
 
+export type CatchtableTagTone = 'sand' | 'rose' | 'mint';
+export type CatchtableDayState = 'AVAILABLE' | 'SOLD_OUT' | 'CLOSED' | 'PHONE_ONLY';
+export type CatchtableFacilityIcon =
+  | 'parking'
+  | 'valet'
+  | 'corkage'
+  | 'lettering'
+  | 'private_room'
+  | 'sommelier'
+  | 'wifi'
+  | 'wheelchair';
+
+export interface CatchtablePromoTag {
+  id: string;
+  label: string;
+  tone: CatchtableTagTone;
+}
+
+export interface CatchtableOperatingMeta {
+  statusLabel: string;
+  nextOpenAt: string;
+  lunchPriceLabel: string;
+  dinnerPriceLabel: string;
+}
+
+export interface CatchtableDailyStatus {
+  date: string;
+  dayLabel: string;
+  shortLabel: string;
+  state: CatchtableDayState;
+  note: string;
+}
+
+export interface CatchtableOpenSchedule {
+  reservationOpenAt: string;
+  reservationRange: string;
+  actionLabel: string;
+}
+
+export interface CatchtableNewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  publishedLabel: string;
+}
+
+export interface CatchtableFacility {
+  id: string;
+  label: string;
+  icon: CatchtableFacilityIcon;
+}
+
+export interface CatchtableGuideSection {
+  id: string;
+  title: string;
+  points: string[];
+}
+
+export interface CatchtableCalendarDay {
+  date: string;
+  dayNumber: number;
+  inMonth: boolean;
+  enabled: boolean;
+}
+
+export interface CatchtablePartySchedule {
+  partySize: number;
+  slots: string[];
+  phoneOnlyNotice?: string;
+}
+
+export interface CatchtableVenueUiData {
+  listingId: string;
+  promotionTags: CatchtablePromoTag[];
+  paymentNotice: string;
+  areaLabel: string;
+  cuisineLabel: string;
+  galleryItems: string[];
+  operatingMeta: CatchtableOperatingMeta;
+  weeklyStatus: CatchtableDailyStatus[];
+  openSchedule: CatchtableOpenSchedule;
+  news: CatchtableNewsItem[];
+  facilities: CatchtableFacility[];
+  guideSections: CatchtableGuideSection[];
+  calendarMonthLabel: string;
+  calendarDays: CatchtableCalendarDay[];
+  partySchedules: CatchtablePartySchedule[];
+}
+
 export const PRICE_LABELS: Record<PriceRange, string> = {
   budget: '€ 25 이하',
   mid: '€ 25–60',

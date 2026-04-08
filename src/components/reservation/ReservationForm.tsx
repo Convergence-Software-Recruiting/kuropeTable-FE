@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import type { CreateReservationInput } from '@/lib/types';
 import { useReservation } from '@/hooks/useReservation';
 import Button from '@/components/ui/Button';
+import { mockRestaurantListingMap } from '@/lib/mocks/listingData';
+import { getCatchtableVenueUiData } from '@/lib/mocks/catchtableUiData';
+import CatchtableReservationForm from '@/components/reservation/CatchtableReservationForm';
 
 interface Props {
   restaurantId: string;
 }
 
-export default function ReservationForm({ restaurantId }: Props): React.ReactElement {
+function LegacyReservationForm({ restaurantId }: Props): React.ReactElement {
   const router = useRouter();
   const { loading, error, submit } = useReservation();
 
@@ -129,4 +132,15 @@ export default function ReservationForm({ restaurantId }: Props): React.ReactEle
       </form>
     </main>
   );
+}
+
+export default function ReservationForm({ restaurantId }: Props): React.ReactElement {
+  const listing = mockRestaurantListingMap.get(restaurantId);
+  const catchtableUi = listing?.serviceTrack === 'catchtable' ? getCatchtableVenueUiData(restaurantId) : null;
+
+  if (listing && catchtableUi) {
+    return <CatchtableReservationForm restaurantId={restaurantId} restaurantName={listing.name} ui={catchtableUi} />;
+  }
+
+  return <LegacyReservationForm restaurantId={restaurantId} />;
 }

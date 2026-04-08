@@ -95,7 +95,10 @@ a {
 .kurope-hero-card {
   position: relative;
   border-color: #c9d9ef;
-  background: linear-gradient(145deg, #f8fcff 0%, #f2f8ff 48%, #f8fbff 100%);
+  background:
+    linear-gradient(145deg, rgba(248, 252, 255, 0.96) 0%, rgba(242, 248, 255, 0.94) 48%, rgba(248, 251, 255, 0.98) 100%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  backdrop-filter: blur(14px);
 }
 
 .kurope-hero-glow {
@@ -146,8 +149,9 @@ a {
 .surface-card {
   border: 1px solid var(--line);
   border-radius: 1.25rem;
-  background: var(--surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94));
   box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
 }
 
 .surface-soft {
