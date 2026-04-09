@@ -72,15 +72,9 @@ export default function CityGrid({ cities, selected, onSelect }: Props): React.R
                 </span>
               </div>
 
-              <p className="line-clamp-2 text-xs leading-relaxed text-[var(--text-default)]">{city.districtFocus}</p>
-
               <div className="rounded-xl border border-[#dde6f2] bg-[#f8fbff] px-2.5 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#68809d]">현장 포인트</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-[#405877]">
-                  {city.serviceTrack === 'catchtable' && '저녁 피크타임 예약/대기 전환 흐름을 보기 좋습니다.'}
-                  {city.serviceTrack === 'rentcar' && '도심에서 근교로 빠지는 실제 이동 장벽을 체크하기 좋습니다.'}
-                  {city.serviceTrack === 'grocery' && '관광 소비보다 생활형 재구매 패턴을 읽기 좋은 구간입니다.'}
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#68809d]">한 줄 명분</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#405877]">{city.districtFocus}</p>
               </div>
             </div>
           </button>

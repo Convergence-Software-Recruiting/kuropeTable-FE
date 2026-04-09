@@ -17,6 +17,11 @@ const koreanFont = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "kurope Table",
   description: "kurope Table FE",
+  icons: {
+    icon: "/images/pabicon.png",
+    shortcut: "/images/pabicon.png",
+    apple: "/images/pabicon.png",
+  },
 };
 
 export default function RootLayout({
