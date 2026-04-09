@@ -155,15 +155,15 @@ export const PRICE_LABELS: Record<PriceRange, string> = {
 };
 
 export const TRACK_LABELS: Record<ServiceTrack, string> = {
-  catchtable: '유럽형 캐치테이블',
-  rentcar: '렌트카 통합 이동',
-  grocery: '유럽형 마켓컬리',
+  catchtable: '캐치테이블',
+  rentcar: '렌트카',
+  grocery: '마켓컬리',
 };
 
 export const TRACK_SHORT_LABELS: Record<ServiceTrack, string> = {
-  catchtable: '식당 예약',
-  rentcar: '광역 이동',
-  grocery: '생활 장보기',
+  catchtable: '캐치테이블',
+  rentcar: '렌트카',
+  grocery: '마켓컬리',
 };
 
 export const BADGE_LABELS: Record<NonNullable<CityItem['badge']>, string> = {
